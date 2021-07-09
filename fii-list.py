@@ -71,34 +71,34 @@ def scrap_page(*args, **kwargs):
     return result
 
 
+def filter_list(fii_list, filter_by, filter_gth, filter_lth):
+    filtered_list = {}
+    for key, value in fii_list.items():
+        if filter_gth > 0 and filter_lth > 0:
+            if value.get(filter_by) >= filter_gth and value.get(filter_by) <= filter_lth:
+                filtered_list[key] = value
+        elif filter_gth > 0:
+            if value.get(filter_by) >= filter_gth:
+                filtered_list[key] = value
+        else:
+            if value.get(filter_by) <= filter_lth:
+                filtered_list[key] = value
+
+    return filtered_list
+
+
 def fii_list_by_primo_rico():
-    shares = scrap_page()
-    dy_list = {}
-    for key, value in shares.items():
-        if value.get("Dividend.Yield") >= 0.04:
-            dy_list[key] = value
+    scrap_result = scrap_page()
+    filtered_list = {}
 
-    pvp_list = {}
-    for key, value in dy_list.items():
-        if value.get("P/VP") >= 0.04 and value.get("P/VP") <= 1.20:
-            pvp_list[key] = value
+    filtered_list = filter_list(scrap_result, "Dividend.Yield", 0.04, 0)
+    filtered_list = filter_list(filtered_list, "P/VP", 0.04, 1.20)
+    filtered_list = filter_list(
+        filtered_list, "Valor.de.Mercado", 500000000, 0)
+    filtered_list = filter_list(filtered_list, "Vacancia.Media", 0, 0.30)
+    filtered_list = filter_list(filtered_list, "Liquidez", 1000000, 0)
 
-    vmercado_list = {}
-    for key, value in pvp_list.items():
-        if value.get("Valor.de.Mercado") >= 500000000:
-            vmercado_list[key] = value
-
-    vacancia_list = {}
-    for key, value in vmercado_list.items():
-        if value.get("Vacancia.Media") <= 0.30:
-            vacancia_list[key] = value
-
-    liquidez_list = {}
-    for key, value in vacancia_list.items():
-        if value.get("Liquidez") >= 1000000:
-            liquidez_list[key] = value
-
-    output = OrderedDict(sorted(liquidez_list.items(
+    output = OrderedDict(sorted(filtered_list.items(
     ), key=lambda t: t[1].get("Cotacao"), reverse=True))
 
     return output
@@ -166,12 +166,10 @@ def to_csv(result):
 
 
 if __name__ == '__main__':
-    from waitingbar import WaitingBar
-
-    progress_bar = WaitingBar('[*] Search FII and download')
+    print('[*] Search FII and download')
 
     result = fii_list_by_primo_rico()
 
-    progress_bar.stop()
+    print('[*] Download completed')
 
     to_csv(result)
